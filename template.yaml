@@ -1,0 +1,270 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Security Hub AI Remediation Chatbot Solution - Cost-effective, secure chatbot for remediating AWS Security Hub findings'
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: 'anthropic.claude-3-haiku-20240307-v1:0'
+    Description: 'Bedrock model ID for the chatbot (Claude Haiku for cost efficiency)'
+    AllowedValues:
+      - 'anthropic.claude-3-haiku-20240307-v1:0'
+      - 'anthropic.claude-3-sonnet-20240229-v1:0'
+      - 'amazon.titan-text-express-v1'
+
+  Environment:
+    Type: String
+    Default: 'dev'
+    Description: 'Environment name (dev, staging, prod)'
+    AllowedValues:
+      - 'dev'
+      - 'staging'
+      - 'prod'
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 300
+    MemorySize: 512
+    Environment:
+      Variables:
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+        ENVIRONMENT: !Ref Environment
+    Tags:
+      Project: SecurityHubAIRemediation
+      Environment: !Ref Environment
+
+Resources:
+  # S3 Bucket for deployment artifacts (if needed)
+  DeploymentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'security-hub-ai-${AWS::AccountId}-${AWS::Region}-${Environment}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # Lambda execution role with least privilege
+  ChatbotExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'SecurityHubChatbot-${Environment}-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecurityHubRemediationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Bedrock permissions
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource: !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}'
+              # Security Hub permissions
+              - Effect: Allow
+                Action:
+                  - securityhub:GetFindings
+                  - securityhub:BatchUpdateFindings
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'aws:RequestedRegion': !Ref AWS::Region
+              # Systems Manager permissions
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                  - ssm:GetCommandInvocation
+                  - ssm:DescribeInstanceInformation
+                  - ssm:ListCommandInvocations
+                  - ssm:DescribeDocumentParameters
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'aws:RequestedRegion': !Ref AWS::Region
+              # EC2 permissions for security group remediation
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeSecurityGroups
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupIngress
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'aws:RequestedRegion': !Ref AWS::Region
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+
+  # Main chatbot Lambda function
+  SecurityHubChatbot:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'SecurityHubChatbot-${Environment}'
+      CodeUri: src/
+      Handler: chatbot.lambda_handler
+      Role: !GetAtt ChatbotExecutionRole.Arn
+      Description: 'AI-powered chatbot for Security Hub finding remediation'
+      Environment:
+        Variables:
+          REGION: !Ref AWS::Region
+          ACCOUNT_ID: !Ref AWS::AccountId
+
+  # API Gateway for chat interface
+  ChatbotApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub 'SecurityHubChatbot-${Environment}'
+      StageName: !Ref Environment
+      Description: 'API for Security Hub AI Remediation Chatbot'
+      Cors:
+        AllowMethods: "'POST, GET, OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      EndpointConfiguration:
+        Type: REGIONAL
+      TracingEnabled: true
+
+  # API Gateway Lambda integration
+  ChatbotApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'SecurityHubChatbotApi-${Environment}'
+      CodeUri: src/
+      Handler: api.lambda_handler
+      Role: !GetAtt ChatbotExecutionRole.Arn
+      Description: 'API Gateway handler for Security Hub chatbot'
+      Events:
+        ChatApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ChatbotApi
+            Path: /chat
+            Method: post
+
+  # SSM Documents for common remediations
+  RemediateUnrestrictedSSHDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      Name: !Sub 'SecurityHub-RemediateUnrestrictedSSH-${Environment}'
+      DocumentType: Command
+      DocumentFormat: YAML
+      Content:
+        schemaVersion: '2.2'
+        description: 'Remediate unrestricted SSH access in security groups'
+        parameters:
+          SecurityGroupId:
+            type: String
+            description: 'Security Group ID to remediate'
+            allowedPattern: '^sg-[0-9a-f]{8,17}$'
+        mainSteps:
+          - action: aws:runShellScript
+            name: RemediateSSH
+            inputs:
+              runCommand:
+                - |
+                  #!/bin/bash
+                  set -e
+                  echo "Remediating unrestricted SSH access for Security Group: {{ SecurityGroupId }}"
+                  
+                  # Check if the security group exists and has the problematic rule
+                  if aws ec2 describe-security-groups --group-ids {{ SecurityGroupId }} --region ${AWS::Region} > /dev/null 2>&1; then
+                    echo "Security group {{ SecurityGroupId }} found"
+                    
+                    # Revoke the problematic SSH rule
+                    aws ec2 revoke-security-group-ingress \
+                      --group-id {{ SecurityGroupId }} \
+                      --protocol tcp \
+                      --port 22 \
+                      --cidr 0.0.0.0/0 \
+                      --region ${AWS::Region} || echo "Rule may not exist or already removed"
+                    
+                    echo "Remediation completed for {{ SecurityGroupId }}"
+                  else
+                    echo "Security group {{ SecurityGroupId }} not found"
+                    exit 1
+                  fi
+
+  RemediateUnrestrictedRDPDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      Name: !Sub 'SecurityHub-RemediateUnrestrictedRDP-${Environment}'
+      DocumentType: Command
+      DocumentFormat: YAML
+      Content:
+        schemaVersion: '2.2'
+        description: 'Remediate unrestricted RDP access in security groups'
+        parameters:
+          SecurityGroupId:
+            type: String
+            description: 'Security Group ID to remediate'
+            allowedPattern: '^sg-[0-9a-f]{8,17}$'
+        mainSteps:
+          - action: aws:runShellScript
+            name: RemediateRDP
+            inputs:
+              runCommand:
+                - |
+                  #!/bin/bash
+                  set -e
+                  echo "Remediating unrestricted RDP access for Security Group: {{ SecurityGroupId }}"
+                  
+                  if aws ec2 describe-security-groups --group-ids {{ SecurityGroupId }} --region ${AWS::Region} > /dev/null 2>&1; then
+                    echo "Security group {{ SecurityGroupId }} found"
+                    
+                    # Revoke the problematic RDP rule
+                    aws ec2 revoke-security-group-ingress \
+                      --group-id {{ SecurityGroupId }} \
+                      --protocol tcp \
+                      --port 3389 \
+                      --cidr 0.0.0.0/0 \
+                      --region ${AWS::Region} || echo "Rule may not exist or already removed"
+                    
+                    echo "Remediation completed for {{ SecurityGroupId }}"
+                  else
+                    echo "Security group {{ SecurityGroupId }} not found"
+                    exit 1
+                  fi
+
+Outputs:
+  ApiEndpoint:
+    Description: 'API Gateway endpoint URL for chatbot'
+    Value: !Sub 'https://${ChatbotApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/chat'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+  
+  ChatbotFunctionArn:
+    Description: 'Chatbot Lambda function ARN'
+    Value: !GetAtt SecurityHubChatbot.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ChatbotFunctionArn'
+
+  ChatbotRoleArn:
+    Description: 'Chatbot execution role ARN'
+    Value: !GetAtt ChatbotExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ChatbotRoleArn'
+
+  DeploymentBucket:
+    Description: 'S3 bucket for deployment artifacts'
+    Value: !Ref DeploymentBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-DeploymentBucket'
