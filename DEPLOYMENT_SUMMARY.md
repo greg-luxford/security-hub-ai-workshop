@@ -40,32 +40,12 @@
 2. **Config.1**: AWS Config not enabled (CRITICAL)  
 3. **SSM.7**: SSM documents public sharing (CRITICAL)
 
-## ⚠️ Action Required: Bedrock Model Access
+## ⚠️ Model Configuration: Amazon Titan
 
-The solution is deployed but requires Bedrock model access to be enabled:
-
-### Error Encountered
-```
-ResourceNotFoundException: Model use case details have not been submitted for this account. 
-Fill out the Anthropic use case details form before using the model.
-```
-
-### Resolution Steps
-1. **Navigate to Bedrock Console**: https://console.aws.amazon.com/bedrock/
-2. **Select Region**: ap-southeast-2
-3. **Go to Model Access**: Left sidebar → Model access
-4. **Request Access**: 
-   - Select "Anthropic Claude" models
-   - Fill out the use case form
-   - Submit request
-5. **Wait**: 15 minutes for approval (usually instant)
-
-### Alternative: Use Different Model
-If Claude access is delayed, update the template to use Amazon Titan:
-```bash
-# Redeploy with Titan model
-BEDROCK_MODEL="amazon.titan-text-express-v1" ./deploy.sh
-```
+The solution now uses **Amazon Titan Text Express** model which provides:
+- Automatic access (no approval required)
+- Cost-effective processing (~$0.50/1M tokens)
+- Reliable performance for security analysis
 
 ## 🔧 Management Commands
 

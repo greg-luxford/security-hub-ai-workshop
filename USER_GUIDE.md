@@ -1,4 +1,4 @@
-# 🛡️ User Guide - Security Hub AI Chatbot
+# 🛡️ User Guide - Security Hub AI Chatbot (Amazon Titan)
 
 ## 🚀 Easy Ways to Use the Solution
 

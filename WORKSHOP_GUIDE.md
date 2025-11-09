@@ -75,15 +75,7 @@ aws securityhub batch-enable-standards \
 ```
 
 #### 2.2 Enable Bedrock Model Access
-1. Navigate to [Bedrock Console](https://console.aws.amazon.com/bedrock/)
-2. Select your workshop region
-3. Click "Model access" in left sidebar
-4. Click "Request model access"
-5. Select "Anthropic Claude" models
-6. Fill out use case form:
-   - **Use case**: Educational/Workshop
-   - **Description**: "AWS Workshop for Security Automation"
-7. Submit request (usually approved instantly)
+Amazon Titan models are automatically enabled - no manual approval required!
 
 #### 2.3 Create Test Security Findings
 ```bash

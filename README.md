@@ -25,7 +25,7 @@ A cost-effective, secure chatbot solution that uses natural language to remediat
 
 ### Components
 
-- **Amazon Bedrock** (Claude Haiku) - Natural language processing and remediation analysis
+- **Amazon Bedrock** (Titan Text Express) - Natural language processing and remediation analysis
 - **AWS Lambda** - Chatbot logic and remediation orchestration
 - **API Gateway** - REST API for chat interface
 - **Systems Manager** - Automated remediation document execution
@@ -36,7 +36,7 @@ A cost-effective, secure chatbot solution that uses natural language to remediat
 
 This solution is designed for cost efficiency:
 
-- **Claude Haiku**: Most cost-effective Bedrock model (~$0.25/1M input tokens)
+- **Amazon Titan**: Cost-effective Bedrock model (~$0.50/1M input tokens)
 - **Serverless Architecture**: Pay-per-use Lambda and API Gateway
 - **Optimized Processing**: Maximum 5 findings per request
 - **Minimal Resources**: 512MB Lambda memory allocation
@@ -61,7 +61,7 @@ This solution is designed for cost efficiency:
 2. **SAM CLI** installed (`brew install aws-sam-cli`)
 3. **Python 3.12** installed (`brew install python@3.12`)
 4. **Security Hub** enabled in target region
-5. **Bedrock** access enabled for Claude models
+5. **Model Catalog** access enabled for Amazon Titan models (automatically enabled)
 
 ### Deployment
 
