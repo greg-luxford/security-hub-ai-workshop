@@ -5,12 +5,12 @@ Description: Security Hub AI Remediation Chatbot Solution - Cost-effective, secu
 Parameters:
   BedrockModelId:
     Type: String
-    Default: anthropic.claude-3-haiku-20240307-v1:0
-    Description: Bedrock model ID for the chatbot (Claude Haiku for cost efficiency)
+    Default: amazon.titan-text-express-v1
+    Description: Bedrock model ID for the chatbot (Titan for immediate access)
     AllowedValues:
+    - amazon.titan-text-express-v1
     - anthropic.claude-3-haiku-20240307-v1:0
     - anthropic.claude-3-sonnet-20240229-v1:0
-    - amazon.titan-text-express-v1
   Environment:
     Type: String
     Default: dev
@@ -71,8 +71,15 @@ Resources:
           - Effect: Allow
             Action:
             - bedrock:InvokeModel
-            Resource:
-              Fn::Sub: arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}
+            - bedrock:ListFoundationModels
+            - bedrock:GetFoundationModel
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - aws-marketplace:ViewSubscriptions
+            - aws-marketplace:Subscribe
+            - aws-marketplace:Unsubscribe
+            Resource: '*'
           - Effect: Allow
             Action:
             - securityhub:GetFindings
@@ -144,9 +151,23 @@ Resources:
         AllowMethods: '''POST, GET, OPTIONS'''
         AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
         AllowOrigin: '''*'''
+        AllowCredentials: false
       EndpointConfiguration:
         Type: REGIONAL
       TracingEnabled: true
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: '''*'''
+              Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+              Access-Control-Allow-Methods: '''POST,GET,OPTIONS'''
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: '''*'''
+              Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+              Access-Control-Allow-Methods: '''POST,GET,OPTIONS'''
   ChatbotApiFunction:
     Type: AWS::Serverless::Function
     Properties:

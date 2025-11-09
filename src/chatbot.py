@@ -118,18 +118,34 @@ Focus on common Security Hub findings like:
 Only suggest automated remediation for well-defined, low-risk changes."""
 
             # Call Bedrock
-            response = self.bedrock.invoke_model(
-                modelId=self.model_id,
-                body=json.dumps({
-                    "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": 1000,
-                    "temperature": 0.1,
-                    "messages": [{"role": "user", "content": prompt}]
-                })
-            )
-            
-            result = json.loads(response['body'].read())
-            ai_response = result['content'][0]['text']
+            if 'anthropic' in self.model_id:
+                # Anthropic format
+                response = self.bedrock.invoke_model(
+                    modelId=self.model_id,
+                    body=json.dumps({
+                        "anthropic_version": "bedrock-2023-05-31",
+                        "max_tokens": 1000,
+                        "temperature": 0.1,
+                        "messages": [{"role": "user", "content": prompt}]
+                    })
+                )
+                result = json.loads(response['body'].read())
+                ai_response = result['content'][0]['text']
+            else:
+                # Amazon Titan format
+                response = self.bedrock.invoke_model(
+                    modelId=self.model_id,
+                    body=json.dumps({
+                        "inputText": prompt,
+                        "textGenerationConfig": {
+                            "maxTokenCount": 1000,
+                            "temperature": 0.1,
+                            "topP": 0.9
+                        }
+                    })
+                )
+                result = json.loads(response['body'].read())
+                ai_response = result['results'][0]['outputText']
             
             # Parse JSON response from AI
             try:
