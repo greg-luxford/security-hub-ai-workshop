@@ -31,7 +31,7 @@ class SecurityHubChatbot:
             logger.error(f"Failed to initialize SecurityHubChatbot: {str(e)}")
             raise
 
-    def get_security_hub_findings(self, filters: Optional[Dict] = None, max_results: int = 10) -> List[Dict]:
+    def get_security_hub_findings(self, filters: Optional[Dict] = None, max_results: int = 5) -> List[Dict]:
         """Retrieve Security Hub findings with optional filters"""
         try:
             # Default filters for active findings
@@ -268,33 +268,42 @@ Only suggest automated remediation for well-defined, low-risk changes."""
     def process_chat_message(self, message: str) -> Dict:
         """Process user chat message and provide response with remediation actions"""
         try:
+            import time
+            start_time = time.time()
+            
             logger.info(f"Processing chat message: {message[:100]}...")
             
-            # Get recent findings based on message context
+            # Get recent findings based on message context - limit to 2 for speed
             filters = {}
             if 'critical' in message.lower():
                 filters['SeverityLabel'] = [{'Value': 'CRITICAL', 'Comparison': 'EQUALS'}]
             elif 'high' in message.lower():
                 filters['SeverityLabel'] = [{'Value': 'HIGH', 'Comparison': 'EQUALS'}]
             
-            findings = self.get_security_hub_findings(filters=filters, max_results=5)
+            findings_start = time.time()
+            findings = self.get_security_hub_findings(filters=filters, max_results=5)  # Increased from 2
+            findings_time = time.time() - findings_start
+            logger.info(f"Security Hub query took: {findings_time:.2f}s")
             
             if not findings:
                 return {
-                    "response": "No active Security Hub findings found that match your criteria. This could mean:\n- Security Hub is not enabled in this region\n- No findings match your filter criteria\n- All findings have been resolved",
+                    "response": "No active Security Hub findings found that match your criteria.",
                     "findings_count": 0,
                     "remediations": []
                 }
             
-            # Analyze findings with AI
+            # Process only 1 finding with AI for speed, show others without AI
             responses = []
             automated_count = 0
             manual_count = 0
             
-            for i, finding in enumerate(findings[:3]):  # Process top 3 findings
-                logger.info(f"Analyzing finding {i+1}: {finding.get('Title', 'Unknown')}")
+            for i, finding in enumerate(findings[:3]):  # AI-analyze 3 findings with fast Claude
+                logger.info(f"AI analyzing finding {i+1}: {finding.get('Title', 'Unknown')}")
                 
+                ai_start = time.time()
                 analysis = self.analyze_finding_with_ai(finding, message)
+                ai_time = time.time() - ai_start
+                logger.info(f"AI analysis took: {ai_time:.2f}s")
                 
                 remediation_result = None
                 if analysis.get('automated', False) and analysis.get('ssm_document'):
@@ -314,16 +323,34 @@ Only suggest automated remediation for well-defined, low-risk changes."""
                     "execution": remediation_result
                 })
             
+            # Add remaining findings without AI analysis for speed
+            for finding in findings[3:]:  # Remaining findings after first 3
+                manual_count += 1
+                responses.append({
+                    "finding_id": finding.get('Id', 'unknown'),
+                    "finding_title": finding.get('Title', 'Unknown Finding'),
+                    "severity": finding.get('Severity', {}).get('Label', 'Unknown'),
+                    "analysis": {
+                        "remediation_action": "manual_review",
+                        "explanation": "Additional finding - requires manual review",
+                        "automated": False
+                    },
+                    "execution": None
+                })
+            
+            total_time = time.time() - start_time
+            logger.info(f"Total processing time: {total_time:.2f}s")
+            
             # Generate summary response
-            summary = f"Analyzed {len(findings)} Security Hub findings. "
+            summary = f"Analyzed {len(findings)} Security Hub findings in {total_time:.1f}s. "
             if automated_count > 0:
-                summary += f"Automatically remediated {automated_count} findings. "
+                summary += f"Automatically processed {automated_count} findings. "
             if manual_count > 0:
                 summary += f"{manual_count} findings require manual review. "
             
             summary += f"\n\nProcessed findings:\n"
             for i, resp in enumerate(responses, 1):
-                status = "✅ Auto-remediated" if resp['execution'] and resp['execution'].get('status') == 'success' else "⚠️ Manual review needed"
+                status = "🤖 AI-analyzed" if i <= 3 else "📋 Listed"
                 summary += f"{i}. {resp['finding_title']} ({resp['severity']}) - {status}\n"
             
             return {
@@ -331,7 +358,8 @@ Only suggest automated remediation for well-defined, low-risk changes."""
                 "findings_count": len(findings),
                 "remediations": responses,
                 "automated_count": automated_count,
-                "manual_count": manual_count
+                "manual_count": manual_count,
+                "processing_time": f"{total_time:.1f}s"
             }
             
         except Exception as e:

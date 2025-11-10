@@ -242,7 +242,8 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ message: message }),
+                    signal: AbortSignal.timeout(60000) // 60 second timeout
                 });
                 
                 if (!response.ok) {

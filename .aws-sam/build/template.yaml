@@ -22,8 +22,8 @@ Parameters:
 Globals:
   Function:
     Runtime: python3.12
-    Timeout: 300
-    MemorySize: 512
+    Timeout: 900
+    MemorySize: 1024
     Environment:
       Variables:
         BEDROCK_MODEL_ID:
