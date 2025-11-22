@@ -40,12 +40,15 @@
 2. **Config.1**: AWS Config not enabled (CRITICAL)  
 3. **SSM.7**: SSM documents public sharing (CRITICAL)
 
-## ⚠️ Model Configuration: Amazon Titan
+## ⚠️ Model Configuration: Claude Haiku
 
-The solution now uses **Amazon Titan Text Express** model which provides:
-- Automatic access (no approval required)
-- Cost-effective processing (~$0.50/1M tokens)
-- Reliable performance for security analysis
+The solution uses **Anthropic Claude 3 Haiku** model which provides:
+- Fast response times (no API Gateway timeouts)
+- Cost-effective processing (~$0.25/1M input, ~$1.25/1M output tokens)
+- Superior analysis quality for security findings
+- **Requires manual model access approval** in AWS Console (Bedrock → Model access)
+
+**Note**: We switched from Amazon Titan to Claude Haiku due to API Gateway timeout issues with Titan's slower response times.
 
 ## 🔧 Management Commands
 
@@ -77,17 +80,17 @@ aws cloudformation delete-stack \
 ## 💰 Cost Monitoring
 
 ### Current Configuration
-- **Lambda**: 512MB, Python 3.12
+- **Lambda**: 1024MB, Python 3.12
 - **API Gateway**: Regional endpoint
-- **Bedrock**: Claude Haiku (when enabled)
+- **Bedrock**: Claude Haiku (anthropic.claude-3-haiku-20240307-v1:0)
 - **Storage**: Encrypted S3 bucket
 
 ### Expected Monthly Costs (Light Usage)
-- Lambda: $1-3
+- Lambda: $2-4
 - API Gateway: $1-2  
-- Bedrock: $2-8
+- Bedrock (Claude Haiku): $3-10
 - S3: <$1
-- **Total**: $4-14/month
+- **Total**: $6-17/month
 
 ## 🔒 Security Features Active
 
@@ -123,8 +126,12 @@ aws cloudwatch put-metric-alarm \
 ## 🚀 Next Steps
 
 ### Immediate (Required)
-1. **Enable Bedrock Access**: Complete model access request
-2. **Test Full Functionality**: Verify AI analysis works
+1. **Enable Claude Haiku Access**: 
+   - Go to AWS Console → Bedrock → Model access
+   - Select "Anthropic" → "Claude 3 Haiku"
+   - Request model access and submit use case form
+   - Wait for approval (usually instant)
+2. **Test Full Functionality**: Verify AI analysis works with Claude Haiku
 3. **Review Security Findings**: Address the 3 critical findings detected
 
 ### Short Term (Recommended)

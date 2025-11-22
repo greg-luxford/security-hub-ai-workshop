@@ -8,6 +8,10 @@
 git clone <repo-url>
 cd security-hub-ai-solution
 
+# Enable Claude Haiku model access first!
+# Go to: AWS Console → Bedrock → Model access
+# Select "Anthropic" → "Claude 3 Haiku" → Request access
+
 # Setup test resources
 ./workshop-setup.sh
 
@@ -87,9 +91,10 @@ aws ssm list-commands --max-items 5
 - Check Security Hub is enabled: `aws securityhub describe-hub`
 
 **Bedrock access denied**
-- Enable model access in Bedrock console
-- Select Anthropic Claude models
-- Fill out use case form
+- Enable Claude Haiku model access in Bedrock console
+- Go to: AWS Console → Bedrock → Model access → Manage model access
+- Select "Anthropic" → "Claude 3 Haiku"
+- Submit use case form (approval usually instant)
 
 **API Gateway errors**
 - Check CORS settings
@@ -135,11 +140,11 @@ aws ssm list-commands --max-items 5
 
 ## 💡 Key Learning Points
 
-1. **AI Integration**: How to use Bedrock for security analysis
+1. **AI Integration**: How to use Bedrock with Claude Haiku for security analysis
 2. **Serverless Architecture**: Lambda + API Gateway patterns
 3. **Infrastructure as Code**: SAM/CloudFormation deployment
 4. **Security Automation**: Systems Manager document execution
-5. **Cost Optimization**: Pay-per-use serverless design
+5. **Cost Optimization**: Pay-per-use serverless design with fast, efficient AI model
 
 ## 📞 Need Help?
 

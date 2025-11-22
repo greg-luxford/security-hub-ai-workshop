@@ -168,10 +168,10 @@ echo "- S3 bucket with encryption and public access blocked"
 
 echo ""
 echo "💰 Cost Optimization Features:"
-echo "- Uses Claude Haiku (most cost-effective Bedrock model)"
+echo "- Uses Claude Haiku (fast and cost-effective Bedrock model)"
 echo "- Serverless architecture (pay-per-use)"
 echo "- Processes maximum 5 findings per request"
-echo "- 512MB memory allocation for Lambda functions"
+echo "- 1024MB memory allocation for Lambda functions"
 echo "- Regional API Gateway endpoint"
 
 echo ""

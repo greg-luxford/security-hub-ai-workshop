@@ -1,4 +1,4 @@
-# 🛡️ User Guide - Security Hub AI Chatbot (Amazon Titan)
+# 🛡️ User Guide - Security Hub AI Chatbot (Claude Haiku)
 
 ## 🚀 Easy Ways to Use the Solution
 

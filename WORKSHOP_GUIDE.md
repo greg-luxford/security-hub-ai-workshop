@@ -6,7 +6,9 @@ This workshop demonstrates how to build and deploy an AI-powered chatbot that au
 
 **Duration**: 60-90 minutes  
 **Level**: Intermediate  
-**Services Used**: Security Hub, Bedrock, Lambda, API Gateway, Systems Manager
+**Services Used**: Security Hub, Bedrock (Claude Haiku), Lambda, API Gateway, Systems Manager
+
+**Important**: This solution uses Claude Haiku instead of Amazon Titan. We made this switch because Titan's slower response times caused API Gateway timeouts. Claude Haiku is faster, more cost-effective, and provides better analysis quality.
 
 ## 🏗️ Architecture
 
@@ -62,7 +64,7 @@ git clone <workshop-repo-url>
 cd security-hub-ai-solution
 ```
 
-### Step 2: Enable AWS Services (15 minutes)
+### Step 2: Enable AWS Services (20 minutes)
 
 #### 2.1 Enable Security Hub
 ```bash
@@ -75,7 +77,21 @@ aws securityhub batch-enable-standards \
 ```
 
 #### 2.2 Enable Bedrock Model Access
-Amazon Titan models are automatically enabled - no manual approval required!
+```bash
+# Open AWS Console and enable Claude Haiku model access
+# 1. Navigate to: AWS Console → Amazon Bedrock → Model access
+# 2. Click "Manage model access"
+# 3. Select "Anthropic" → Check "Claude 3 Haiku"
+# 4. Click "Request model access"
+# 5. Fill out the use case form (required)
+# 6. Submit and wait for approval (usually instant to a few minutes)
+
+# Verify model access via CLI
+aws bedrock list-foundation-models --region us-east-1 \
+  --query 'modelSummaries[?contains(modelId, `claude-3-haiku`)]'
+```
+
+**Note**: Claude Haiku requires manual approval but is typically granted instantly. This model was chosen over Amazon Titan due to better performance and no API Gateway timeout issues.
 
 #### 2.3 Create Test Security Findings
 ```bash
@@ -249,8 +265,13 @@ Try these advanced queries and observe the AI responses:
 
 #### Bedrock Access Denied
 ```bash
-# Error: Model use case details not submitted
-# Solution: Complete Bedrock model access request in console
+# Error: You don't have access to the model with the specified model ID
+# Solution: Enable Claude Haiku model access in AWS Console
+# 1. Go to: AWS Console → Amazon Bedrock → Model access
+# 2. Click "Manage model access"
+# 3. Select "Anthropic" → "Claude 3 Haiku"
+# 4. Click "Request model access" and submit the form
+# 5. Wait for approval (usually instant)
 ```
 
 #### No Security Findings
@@ -335,8 +356,19 @@ aws cloudformation describe-stacks \
 
 - [AWS Security Hub User Guide](https://docs.aws.amazon.com/securityhub/)
 - [Amazon Bedrock Documentation](https://docs.aws.amazon.com/bedrock/)
+- [Anthropic Claude Models](https://www.anthropic.com/claude)
 - [AWS SAM Developer Guide](https://docs.aws.amazon.com/serverless-application-model/)
 - [Systems Manager Automation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-automation.html)
+
+## ⚠️ Important Notes
+
+**Model Selection**: This workshop uses Claude Haiku instead of Amazon Titan because:
+- Titan caused API Gateway timeouts (>30 seconds response time)
+- Claude Haiku responds in 2-5 seconds
+- Better analysis quality for security findings
+- More cost-effective for this use case
+
+**Model Access**: Claude Haiku requires manual approval in the AWS Console, but approval is typically instant.
 
 ---
 

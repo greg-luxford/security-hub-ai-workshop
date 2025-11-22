@@ -5,12 +5,12 @@ Description: 'Security Hub AI Remediation Chatbot Solution - Cost-effective, sec
 Parameters:
   BedrockModelId:
     Type: String
-    Default: 'amazon.titan-text-express-v1'
-    Description: 'Bedrock model ID for the chatbot (Titan for immediate access)'
+    Default: 'anthropic.claude-3-haiku-20240307-v1:0'
+    Description: 'Bedrock model ID for the chatbot (Claude Haiku recommended - fast and cost-effective)'
     AllowedValues:
-      - 'amazon.titan-text-express-v1'
       - 'anthropic.claude-3-haiku-20240307-v1:0'
       - 'anthropic.claude-3-sonnet-20240229-v1:0'
+      - 'amazon.titan-text-express-v1'
 
   Environment:
     Type: String

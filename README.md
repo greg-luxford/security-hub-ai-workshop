@@ -23,9 +23,11 @@ A cost-effective, secure chatbot solution that uses natural language to remediat
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
+**Why Claude Haiku?** We switched from Amazon Titan to Claude Haiku due to API Gateway timeout issues. Claude Haiku provides faster response times, better analysis quality, and stays well within the 30-second API Gateway timeout limit.
+
 ### Components
 
-- **Amazon Bedrock** (Titan Text Express) - Natural language processing and remediation analysis
+- **Amazon Bedrock** (Claude Haiku) - Natural language processing and remediation analysis
 - **AWS Lambda** - Chatbot logic and remediation orchestration
 - **API Gateway** - REST API for chat interface
 - **Systems Manager** - Automated remediation document execution
@@ -36,13 +38,13 @@ A cost-effective, secure chatbot solution that uses natural language to remediat
 
 This solution is designed for cost efficiency:
 
-- **Amazon Titan**: Cost-effective Bedrock model (~$0.50/1M input tokens)
+- **Claude Haiku**: Fast, cost-effective Bedrock model (~$0.25/1M input tokens, ~$1.25/1M output tokens)
 - **Serverless Architecture**: Pay-per-use Lambda and API Gateway
 - **Optimized Processing**: Maximum 5 findings per request
-- **Minimal Resources**: 512MB Lambda memory allocation
+- **Minimal Resources**: 1024MB Lambda memory allocation
 - **Regional Deployment**: Reduces data transfer costs
 
-**Estimated Monthly Cost**: $4-18 for light usage (100-500 requests/month)
+**Estimated Monthly Cost**: $5-20 for light usage (100-500 requests/month)
 
 ## 🔒 Security Features
 
@@ -61,7 +63,7 @@ This solution is designed for cost efficiency:
 2. **SAM CLI** installed (`brew install aws-sam-cli`)
 3. **Python 3.12** installed (`brew install python@3.12`)
 4. **Security Hub** enabled in target region
-5. **Model Catalog** access enabled for Amazon Titan models (automatically enabled)
+5. **Bedrock Model Access** enabled for Claude Haiku (requires manual approval in AWS Console)
 
 ### Deployment
 
@@ -71,12 +73,19 @@ This solution is designed for cost efficiency:
    cd security-hub-ai-solution
    ```
 
-2. **Configure AWS SSO** (if using SSO):
+2. **Enable Bedrock Model Access**:
+   - Open AWS Console → Amazon Bedrock → Model access
+   - Click "Manage model access"
+   - Select "Anthropic" → "Claude 3 Haiku"
+   - Click "Request model access" and submit the form
+   - Wait for approval (usually instant to a few minutes)
+
+3. **Configure AWS SSO** (if using SSO):
    ```bash
    aws sso login --profile your-profile-name
    ```
 
-3. **Deploy the solution**:
+4. **Deploy the solution**:
    ```bash
    # Set environment variables (optional)
    export AWS_PROFILE=your-profile-name
@@ -87,7 +96,7 @@ This solution is designed for cost efficiency:
    ./deploy.sh
    ```
 
-4. **Test the deployment**:
+5. **Test the deployment**:
    ```bash
    curl -X POST 'https://your-api-endpoint/dev/chat' \
      -H 'Content-Type: application/json' \
@@ -201,7 +210,7 @@ Currently supports automatic remediation for:
 
 ### Parameters
 
-- `BedrockModelId`: Bedrock model to use (default: Claude Haiku)
+- `BedrockModelId`: Bedrock model to use (default: anthropic.claude-3-haiku-20240307-v1:0)
 - `Environment`: Deployment environment (dev/staging/prod)
 
 ## 📊 Monitoring
@@ -264,8 +273,9 @@ aws lambda invoke \
 
 1. **Bedrock Access Denied**
    - Ensure Bedrock is enabled in your region
-   - Check model access permissions
-   - Verify the model ID is correct
+   - Enable Claude Haiku model access in AWS Console (Bedrock → Model access)
+   - Wait for model access approval (usually instant)
+   - Verify the model ID is correct: anthropic.claude-3-haiku-20240307-v1:0
 
 2. **Security Hub Not Enabled**
    - Enable Security Hub: `aws securityhub enable-security-hub`
@@ -313,7 +323,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - AWS Security Hub team for comprehensive security findings
-- Amazon Bedrock team for accessible AI models
+- Anthropic for Claude Haiku - fast and cost-effective AI model
+- Amazon Bedrock team for accessible AI infrastructure
 - AWS SAM team for serverless deployment framework
 
 ## 📞 Support
